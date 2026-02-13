@@ -19,7 +19,6 @@ namespace AgriManager.API.Controllers
             _context = context;
         }
 
-        // 🔑 Extract CustomerId from JWT
         private int GetCustomerId()
         {
             return int.Parse(User.FindFirst("CustomerId")!.Value);
@@ -27,7 +26,8 @@ namespace AgriManager.API.Controllers
 
         // ✅ CREATE FIELD
         [HttpPost]
-        public async Task<IActionResult> CreateField([FromBody] FieldCreateUpdateDto dto)
+        public async Task<ActionResult<ApiResponseDto<Field>>> CreateField(
+            [FromBody] FieldCreateUpdateDto dto)
         {
             int customerId = GetCustomerId();
 
@@ -45,12 +45,17 @@ namespace AgriManager.API.Controllers
             _context.Fields.Add(field);
             await _context.SaveChangesAsync();
 
-            return Ok(field);
+            return Ok(new ApiResponseDto<Field>
+            {
+                Status = true,
+                Message = "Field created successfully",
+                Data = field
+            });
         }
 
-        // ✅ GET ALL FIELDS (Logged customer + Farm name)
+        // ✅ GET ALL FIELDS
         [HttpGet]
-        public async Task<IActionResult> GetAllFields()
+        public async Task<ActionResult<ApiResponseDto<List<FieldResponseDto>>>> GetAllFields()
         {
             int customerId = GetCustomerId();
 
@@ -59,7 +64,7 @@ namespace AgriManager.API.Controllers
                 join farm in _context.Farms
                     on field.FarmId equals farm.FarmId
                 where field.CustomerId == customerId
-                select new FieldListDto
+                select new FieldResponseDto
                 {
                     FieldId = field.FieldId,
                     FarmId = field.FarmId,
@@ -70,12 +75,17 @@ namespace AgriManager.API.Controllers
                 }
             ).ToListAsync();
 
-            return Ok(fields);
+            return Ok(new ApiResponseDto<List<FieldResponseDto>>
+            {
+                Status = true,
+                Message = "Fields fetched successfully",
+                Data = fields
+            });
         }
 
-        // ✅ GET FIELD BY ID (View / Edit)
+        // ✅ GET FIELD BY ID
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetFieldById(int id)
+        public async Task<ActionResult<ApiResponseDto<FieldResponseDto>>> GetFieldById(int id)
         {
             int customerId = GetCustomerId();
 
@@ -84,7 +94,7 @@ namespace AgriManager.API.Controllers
                 join farm in _context.Farms
                     on f.FarmId equals farm.FarmId
                 where f.FieldId == id && f.CustomerId == customerId
-                select new FieldListDto
+                select new FieldResponseDto
                 {
                     FieldId = f.FieldId,
                     FarmId = f.FarmId,
@@ -96,14 +106,26 @@ namespace AgriManager.API.Controllers
             ).FirstOrDefaultAsync();
 
             if (field == null)
-                return NotFound("Field not found");
+            {
+                return NotFound(new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = "Field not found"
+                });
+            }
 
-            return Ok(field);
+            return Ok(new ApiResponseDto<FieldResponseDto>
+            {
+                Status = true,
+                Message = "Field fetched successfully",
+                Data = field
+            });
         }
 
         // ✅ UPDATE FIELD
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateField(int id, [FromBody] FieldCreateUpdateDto dto)
+        public async Task<ActionResult<ApiResponseDto<Field>>> UpdateField(
+            int id, [FromBody] FieldCreateUpdateDto dto)
         {
             int customerId = GetCustomerId();
 
@@ -111,7 +133,13 @@ namespace AgriManager.API.Controllers
                 .FirstOrDefaultAsync(f => f.FieldId == id && f.CustomerId == customerId);
 
             if (field == null)
-                return NotFound("Field not found");
+            {
+                return NotFound(new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = "Field not found"
+                });
+            }
 
             field.FarmId = dto.FarmId;
             field.FieldName = dto.FieldName;
@@ -122,12 +150,17 @@ namespace AgriManager.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(field);
+            return Ok(new ApiResponseDto<Field>
+            {
+                Status = true,
+                Message = "Field updated successfully",
+                Data = field
+            });
         }
 
         // ✅ DELETE FIELD
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteField(int id)
+        public async Task<ActionResult<ApiResponseDto<object>>> DeleteField(int id)
         {
             int customerId = GetCustomerId();
 
@@ -135,12 +168,22 @@ namespace AgriManager.API.Controllers
                 .FirstOrDefaultAsync(f => f.FieldId == id && f.CustomerId == customerId);
 
             if (field == null)
-                return NotFound("Field not found");
+            {
+                return NotFound(new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = "Field not found"
+                });
+            }
 
             _context.Fields.Remove(field);
             await _context.SaveChangesAsync();
 
-            return Ok("Field deleted successfully");
+            return Ok(new ApiResponseDto<object>
+            {
+                Status = true,
+                Message = "Field deleted successfully"
+            });
         }
     }
 }

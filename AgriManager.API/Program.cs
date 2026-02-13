@@ -16,13 +16,13 @@ builder.Services.AddControllers();
 // ✅ CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngularApp",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:4200")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
 // ✅ DB CONTEXT
@@ -48,6 +48,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
         )
     };
+
+    // ✅ IMPORTANT: allow OPTIONS requests without JWT
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.HttpContext.Request.Method == "OPTIONS")
+            {
+                context.NoResult();
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -61,18 +74,15 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1"
     });
 
-    // 🔐 JWT Definition
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter token as: Bearer {your JWT token}"
+        In = ParameterLocation.Header
     });
 
-    // 🔐 Apply JWT globally
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -84,7 +94,7 @@ builder.Services.AddSwaggerGen(options =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
@@ -101,9 +111,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ⚠️ ORDER IS VERY IMPORTANT
+// ✅ CORRECT ORDER
 app.UseCors("AllowAngularApp");
-app.UseAuthentication();   // 🔥 MUST BE BEFORE Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
