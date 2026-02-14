@@ -23,4 +23,12 @@
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <EditorConfigFiles Remove="C:\Users\sivak\Desktop\AgriManager\AgriManager.API\Models\.editorconfig" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="C:\Users\sivak\Desktop\AgriManager\AgriManager.API\Models\.editorconfig" />
+	</ItemGroup>
+
 </Project>
