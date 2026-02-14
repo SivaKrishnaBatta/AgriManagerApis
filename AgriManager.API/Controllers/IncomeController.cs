@@ -9,12 +9,12 @@ namespace AgriManager.API.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/expenses")]
-    public class ExpensesController : ControllerBase
+    [Route("api/income")]
+    public class IncomeController : ControllerBase
     {
         private readonly AgriManagerDbContext _context;
 
-        public ExpensesController(AgriManagerDbContext context)
+        public IncomeController(AgriManagerDbContext context)
         {
             _context = context;
         }
@@ -26,42 +26,45 @@ namespace AgriManager.API.Controllers
 
         // ================= CREATE =================
         [HttpPost]
-        public async Task<IActionResult> CreateExpense([FromBody] ExpenseCreateUpdateDto dto)
+        public async Task<IActionResult> CreateIncome([FromBody] IncomeCreateUpdateDto dto)
         {
             try
             {
                 int customerId = GetCustomerId();
 
-                if (dto.Amount <= 0)
+                if (dto.Quantity == null || dto.PricePerUnit == null)
                 {
                     return BadRequest(new ApiResponseDto<object>
                     {
                         Status = false,
-                        Message = "Amount must be greater than zero",
+                        Message = "Quantity and PricePerUnit are required",
                         Data = null
                     });
                 }
 
-                var expense = new Expense
+                decimal totalAmount = dto.Quantity.Value * dto.PricePerUnit.Value;
+
+                var income = new Income
                 {
                     CropId = dto.CropId,
-                    CategoryId = dto.CategoryId,
-                    Amount = dto.Amount,
-                    ExpenseDate = DateOnly.FromDateTime(dto.ExpenseDate),
+                    Quantity = dto.Quantity,
+                    PricePerUnit = dto.PricePerUnit,
+                    TotalAmount = totalAmount,
+                    SaleDate = DateOnly.FromDateTime(dto.SaleDate),
                     Notes = dto.Notes,
                     CustomerId = customerId,
                     CreatedBy = customerId,
                     CreatedAt = DateTime.Now
                 };
 
-                _context.Expenses.Add(expense);
+                _context.Incomes.Add(income);
                 await _context.SaveChangesAsync();
 
-                return Ok(new ApiResponseDto<Expense>
+                return Ok(new ApiResponseDto<Income>
                 {
                     Status = true,
-                    Message = "Expense created successfully",
-                    Data = expense
+                    Message = "Income created successfully",
+                    Data = income
                 });
             }
             catch (Exception ex)
@@ -77,39 +80,36 @@ namespace AgriManager.API.Controllers
 
         // ================= GET ALL =================
         [HttpGet]
-        public async Task<IActionResult> GetAllExpenses()
+        public async Task<IActionResult> GetAllIncome()
         {
             try
             {
                 int customerId = GetCustomerId();
 
-                var expenses = await (
-                    from e in _context.Expenses
+                var incomeList = await (
+                    from i in _context.Incomes
                     join c in _context.Crops
-                        on new { e.CropId, e.CustomerId }
+                        on new { i.CropId, i.CustomerId }
                         equals new { c.CropId, c.CustomerId }
-                    join cat in _context.ExpenseCategories
-                        on new { e.CategoryId, e.CustomerId }
-                        equals new { cat.CategoryId, cat.CustomerId }
-                    where e.CustomerId == customerId
-                    select new ExpenseListDto
+                    where i.CustomerId == customerId
+                    select new IncomeListDto
                     {
-                        ExpenseId = e.ExpenseId,
+                        IncomeId = i.IncomeId,
                         CropId = c.CropId,
                         CropName = c.CropName,
-                        CategoryId = cat.CategoryId,
-                        CategoryName = cat.CategoryName,
-                        Amount = e.Amount,
-                        ExpenseDate = e.ExpenseDate.ToDateTime(TimeOnly.MinValue),
-                        Notes = e.Notes
+                        Quantity = i.Quantity,
+                        PricePerUnit = i.PricePerUnit,
+                        TotalAmount = i.TotalAmount,
+                        SaleDate = i.SaleDate.ToDateTime(TimeOnly.MinValue),
+                        Notes = i.Notes
                     }
                 ).ToListAsync();
 
-                return Ok(new ApiResponseDto<List<ExpenseListDto>>
+                return Ok(new ApiResponseDto<List<IncomeListDto>>
                 {
                     Status = true,
-                    Message = "Expenses fetched successfully",
-                    Data = expenses
+                    Message = "Income fetched successfully",
+                    Data = incomeList
                 });
             }
             catch (Exception ex)
@@ -125,49 +125,46 @@ namespace AgriManager.API.Controllers
 
         // ================= GET BY ID =================
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetExpenseById(int id)
+        public async Task<IActionResult> GetIncomeById(int id)
         {
             try
             {
                 int customerId = GetCustomerId();
 
-                var expense = await (
-                    from e in _context.Expenses
+                var income = await (
+                    from i in _context.Incomes
                     join c in _context.Crops
-                        on new { e.CropId, e.CustomerId }
+                        on new { i.CropId, i.CustomerId }
                         equals new { c.CropId, c.CustomerId }
-                    join cat in _context.ExpenseCategories
-                        on new { e.CategoryId, e.CustomerId }
-                        equals new { cat.CategoryId, cat.CustomerId }
-                    where e.ExpenseId == id && e.CustomerId == customerId
-                    select new ExpenseListDto
+                    where i.IncomeId == id && i.CustomerId == customerId
+                    select new IncomeListDto
                     {
-                        ExpenseId = e.ExpenseId,
+                        IncomeId = i.IncomeId,
                         CropId = c.CropId,
                         CropName = c.CropName,
-                        CategoryId = cat.CategoryId,
-                        CategoryName = cat.CategoryName,
-                        Amount = e.Amount,
-                        ExpenseDate = e.ExpenseDate.ToDateTime(TimeOnly.MinValue),
-                        Notes = e.Notes
+                        Quantity = i.Quantity,
+                        PricePerUnit = i.PricePerUnit,
+                        TotalAmount = i.TotalAmount,
+                        SaleDate = i.SaleDate.ToDateTime(TimeOnly.MinValue),
+                        Notes = i.Notes
                     }
                 ).FirstOrDefaultAsync();
 
-                if (expense == null)
+                if (income == null)
                 {
                     return NotFound(new ApiResponseDto<object>
                     {
                         Status = false,
-                        Message = "Expense not found",
+                        Message = "Income not found",
                         Data = null
                     });
                 }
 
-                return Ok(new ApiResponseDto<ExpenseListDto>
+                return Ok(new ApiResponseDto<IncomeListDto>
                 {
                     Status = true,
-                    Message = "Expense fetched successfully",
-                    Data = expense
+                    Message = "Income fetched successfully",
+                    Data = income
                 });
             }
             catch (Exception ex)
@@ -183,40 +180,41 @@ namespace AgriManager.API.Controllers
 
         // ================= UPDATE =================
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateExpense(int id, [FromBody] ExpenseCreateUpdateDto dto)
+        public async Task<IActionResult> UpdateIncome(int id, [FromBody] IncomeCreateUpdateDto dto)
         {
             try
             {
                 int customerId = GetCustomerId();
 
-                var expense = await _context.Expenses
-                    .FirstOrDefaultAsync(e => e.ExpenseId == id && e.CustomerId == customerId);
+                var income = await _context.Incomes
+                    .FirstOrDefaultAsync(i => i.IncomeId == id && i.CustomerId == customerId);
 
-                if (expense == null)
+                if (income == null)
                 {
                     return NotFound(new ApiResponseDto<object>
                     {
                         Status = false,
-                        Message = "Expense not found",
+                        Message = "Income not found",
                         Data = null
                     });
                 }
 
-                expense.CropId = dto.CropId;
-                expense.CategoryId = dto.CategoryId;
-                expense.Amount = dto.Amount;
-                expense.ExpenseDate = DateOnly.FromDateTime(dto.ExpenseDate);
-                expense.Notes = dto.Notes;
-                expense.ModifiedAt = DateTime.Now;
-                expense.ModifiedBy = customerId;
+                income.CropId = dto.CropId;
+                income.Quantity = dto.Quantity;
+                income.PricePerUnit = dto.PricePerUnit;
+                income.TotalAmount = (dto.Quantity ?? 0) * (dto.PricePerUnit ?? 0);
+                income.SaleDate = DateOnly.FromDateTime(dto.SaleDate);
+                income.Notes = dto.Notes;
+                income.ModifiedAt = DateTime.Now;
+                income.ModifiedBy = customerId;
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new ApiResponseDto<Expense>
+                return Ok(new ApiResponseDto<Income>
                 {
                     Status = true,
-                    Message = "Expense updated successfully",
-                    Data = expense
+                    Message = "Income updated successfully",
+                    Data = income
                 });
             }
             catch (Exception ex)
@@ -232,32 +230,32 @@ namespace AgriManager.API.Controllers
 
         // ================= DELETE =================
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteExpense(int id)
+        public async Task<IActionResult> DeleteIncome(int id)
         {
             try
             {
                 int customerId = GetCustomerId();
 
-                var expense = await _context.Expenses
-                    .FirstOrDefaultAsync(e => e.ExpenseId == id && e.CustomerId == customerId);
+                var income = await _context.Incomes
+                    .FirstOrDefaultAsync(i => i.IncomeId == id && i.CustomerId == customerId);
 
-                if (expense == null)
+                if (income == null)
                 {
                     return NotFound(new ApiResponseDto<object>
                     {
                         Status = false,
-                        Message = "Expense not found",
+                        Message = "Income not found",
                         Data = null
                     });
                 }
 
-                _context.Expenses.Remove(expense);
+                _context.Incomes.Remove(income);
                 await _context.SaveChangesAsync();
 
                 return Ok(new ApiResponseDto<object>
                 {
                     Status = true,
-                    Message = "Expense deleted successfully",
+                    Message = "Income deleted successfully",
                     Data = null
                 });
             }

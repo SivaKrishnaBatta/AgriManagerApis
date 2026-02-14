@@ -20,7 +20,6 @@ namespace AgriManager.API.Controllers
             _context = context;
         }
 
-        // 🔑 Get CustomerId from JWT
         private int GetCustomerId()
         {
             return int.Parse(User.FindFirst("CustomerId")!.Value);
@@ -30,111 +29,236 @@ namespace AgriManager.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCategory([FromBody] ExpenseCategoryCreateUpdateDto dto)
         {
-            int customerId = GetCustomerId();
-
-            var category = new ExpenseCategory
+            try
             {
-                CategoryName = dto.CategoryName,
-                IsActive = true,
+                int customerId = GetCustomerId();
 
-                CustomerId = customerId,
-                CreatedBy = customerId,
-                CreatedAt = DateTime.Now
-            };
+                if (string.IsNullOrWhiteSpace(dto.CategoryName))
+                {
+                    return BadRequest(new ApiResponseDto<object>
+                    {
+                        Status = false,
+                        Message = "Category name is required",
+                        Data = null
+                    });
+                }
 
-            _context.ExpenseCategories.Add(category);
-            await _context.SaveChangesAsync();
+                var category = new ExpenseCategory
+                {
+                    CategoryName = dto.CategoryName,
+                    IsActive = true,
+                    CustomerId = customerId,
+                    CreatedBy = customerId,
+                    CreatedAt = DateTime.Now
+                };
 
-            return Ok(category);
+                _context.ExpenseCategories.Add(category);
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiResponseDto<ExpenseCategory>
+                {
+                    Status = true,
+                    Message = "Category created successfully",
+                    Data = category
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
         }
 
         // ================= GET ALL =================
         [HttpGet]
         public async Task<IActionResult> GetAllCategories()
         {
-            int customerId = GetCustomerId();
+            try
+            {
+                int customerId = GetCustomerId();
 
-            var categories = await _context.ExpenseCategories
-                .Where(c => c.CustomerId == customerId)
-                .Select(c => new ExpenseCategoryListDto
+                var categories = await _context.ExpenseCategories
+                    .Where(c => c.CustomerId == customerId)
+                    .Select(c => new ExpenseCategoryListDto
+                    {
+                        CategoryId = c.CategoryId,
+                        CategoryName = c.CategoryName,
+                        IsActive = c.IsActive
+                    })
+                    .OrderByDescending(c => c.IsActive)
+                    .ThenBy(c => c.CategoryName)
+                    .ToListAsync();
+
+                return Ok(new ApiResponseDto<List<ExpenseCategoryListDto>>
                 {
-                    CategoryId = c.CategoryId,
-                    CategoryName = c.CategoryName,
-                    IsActive = c.IsActive
-                })
-                .OrderByDescending(c => c.IsActive)
-                .ThenBy(c => c.CategoryName)
-                .ToListAsync();
-
-            return Ok(categories);
+                    Status = true,
+                    Message = "Categories fetched successfully",
+                    Data = categories
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
         }
 
         // ================= GET BY ID =================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCategoryById(int id)
         {
-            int customerId = GetCustomerId();
+            try
+            {
+                int customerId = GetCustomerId();
 
-            var category = await _context.ExpenseCategories
-                .Where(c => c.CategoryId == id && c.CustomerId == customerId)
-                .Select(c => new ExpenseCategoryListDto
+                var category = await _context.ExpenseCategories
+                    .Where(c => c.CategoryId == id && c.CustomerId == customerId)
+                    .Select(c => new ExpenseCategoryListDto
+                    {
+                        CategoryId = c.CategoryId,
+                        CategoryName = c.CategoryName,
+                        IsActive = c.IsActive
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (category == null)
                 {
-                    CategoryId = c.CategoryId,
-                    CategoryName = c.CategoryName,
-                    IsActive = c.IsActive
-                })
-                .FirstOrDefaultAsync();
+                    return NotFound(new ApiResponseDto<object>
+                    {
+                        Status = false,
+                        Message = "Category not found",
+                        Data = null
+                    });
+                }
 
-            if (category == null)
-                return NotFound("Category not found");
-
-            return Ok(category);
+                return Ok(new ApiResponseDto<ExpenseCategoryListDto>
+                {
+                    Status = true,
+                    Message = "Category fetched successfully",
+                    Data = category
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
         }
 
         // ================= UPDATE =================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] ExpenseCategoryCreateUpdateDto dto)
         {
-            int customerId = GetCustomerId();
+            try
+            {
+                int customerId = GetCustomerId();
 
-            var category = await _context.ExpenseCategories
-                .FirstOrDefaultAsync(c => c.CategoryId == id && c.CustomerId == customerId);
+                var category = await _context.ExpenseCategories
+                    .FirstOrDefaultAsync(c => c.CategoryId == id && c.CustomerId == customerId);
 
-            if (category == null)
-                return NotFound("Category not found");
+                if (category == null)
+                {
+                    return NotFound(new ApiResponseDto<object>
+                    {
+                        Status = false,
+                        Message = "Category not found",
+                        Data = null
+                    });
+                }
 
-            category.CategoryName = dto.CategoryName;
-            category.ModifiedAt = DateTime.Now;
-            category.ModifiedBy = customerId;
+                if (string.IsNullOrWhiteSpace(dto.CategoryName))
+                {
+                    return BadRequest(new ApiResponseDto<object>
+                    {
+                        Status = false,
+                        Message = "Category name is required",
+                        Data = null
+                    });
+                }
 
-            await _context.SaveChangesAsync();
+                category.CategoryName = dto.CategoryName;
+                category.ModifiedAt = DateTime.Now;
+                category.ModifiedBy = customerId;
 
-            return Ok(category);
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiResponseDto<ExpenseCategory>
+                {
+                    Status = true,
+                    Message = "Category updated successfully",
+                    Data = category
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
         }
 
         // ================= ENABLE / DISABLE =================
         [HttpPut("{id}/toggle")]
         public async Task<IActionResult> ToggleCategoryStatus(int id)
         {
-            int customerId = GetCustomerId();
-
-            var category = await _context.ExpenseCategories
-                .FirstOrDefaultAsync(c => c.CategoryId == id && c.CustomerId == customerId);
-
-            if (category == null)
-                return NotFound("Category not found");
-
-            category.IsActive = !category.IsActive;
-            category.ModifiedAt = DateTime.Now;
-            category.ModifiedBy = customerId;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            try
             {
-                category.CategoryId,
-                category.IsActive
-            });
+                int customerId = GetCustomerId();
+
+                var category = await _context.ExpenseCategories
+                    .FirstOrDefaultAsync(c => c.CategoryId == id && c.CustomerId == customerId);
+
+                if (category == null)
+                {
+                    return NotFound(new ApiResponseDto<object>
+                    {
+                        Status = false,
+                        Message = "Category not found",
+                        Data = null
+                    });
+                }
+
+                category.IsActive = !category.IsActive;
+                category.ModifiedAt = DateTime.Now;
+                category.ModifiedBy = customerId;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiResponseDto<object>
+                {
+                    Status = true,
+                    Message = "Category status updated successfully",
+                    Data = new
+                    {
+                        category.CategoryId,
+                        category.IsActive
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = ex.Message,
+                    Data = null
+                });
+            }
         }
     }
 }

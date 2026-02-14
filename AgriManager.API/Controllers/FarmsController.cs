@@ -7,7 +7,7 @@ using AgriManager.API.DTOs;
 
 namespace AgriManager.API.Controllers
 {
-    [Authorize] // 🔐 IMPORTANT
+    [Authorize]
     [ApiController]
     [Route("api/farms")]
     public class FarmsController : ControllerBase
@@ -19,7 +19,6 @@ namespace AgriManager.API.Controllers
             _context = context;
         }
 
-        // 🔑 Helper: get logged-in CustomerId from JWT
         private int GetCustomerId()
         {
             return int.Parse(User.FindFirst("CustomerId")!.Value);
@@ -37,19 +36,23 @@ namespace AgriManager.API.Controllers
                 Location = dto.Location,
                 TotalFields = dto.TotalFields,
                 Notes = dto.Notes,
-
                 CustomerId = customerId,
-                CreatedBy = customerId, // or UserId if you want
+                CreatedBy = customerId,
                 CreatedAt = DateTime.Now
             };
 
             _context.Farms.Add(farm);
             await _context.SaveChangesAsync();
 
-            return Ok(farm);
+            return Ok(new ApiResponseDto<Farm>
+            {
+                Status = true,
+                Message = "Farm created successfully",
+                Data = farm
+            });
         }
 
-        // ✅ READ ALL FARMS (ONLY LOGGED CUSTOMER)
+        // ✅ GET ALL FARMS
         [HttpGet]
         public async Task<IActionResult> GetAllFarms()
         {
@@ -59,10 +62,15 @@ namespace AgriManager.API.Controllers
                 .Where(f => f.CustomerId == customerId)
                 .ToListAsync();
 
-            return Ok(farms);
+            return Ok(new ApiResponseDto<List<Farm>>
+            {
+                Status = true,
+                Message = "Farms fetched successfully",
+                Data = farms
+            });
         }
 
-        // ✅ READ FARM BY ID (SECURE)
+        // ✅ GET FARM BY ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetFarmById(int id)
         {
@@ -72,12 +80,24 @@ namespace AgriManager.API.Controllers
                 .FirstOrDefaultAsync(f => f.FarmId == id && f.CustomerId == customerId);
 
             if (farm == null)
-                return NotFound("Farm not found");
+            {
+                return NotFound(new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = "Farm not found",
+                    Data = null
+                });
+            }
 
-            return Ok(farm);
+            return Ok(new ApiResponseDto<Farm>
+            {
+                Status = true,
+                Message = "Farm fetched successfully",
+                Data = farm
+            });
         }
 
-        // ✅ UPDATE FARM (ONLY OWN FARM)
+        // ✅ UPDATE FARM
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFarm(int id, FarmCreateUpdateDto dto)
         {
@@ -87,7 +107,14 @@ namespace AgriManager.API.Controllers
                 .FirstOrDefaultAsync(f => f.FarmId == id && f.CustomerId == customerId);
 
             if (farm == null)
-                return NotFound("Farm not found");
+            {
+                return NotFound(new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = "Farm not found",
+                    Data = null
+                });
+            }
 
             farm.FarmName = dto.FarmName;
             farm.Location = dto.Location;
@@ -98,10 +125,15 @@ namespace AgriManager.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(farm);
+            return Ok(new ApiResponseDto<Farm>
+            {
+                Status = true,
+                Message = "Farm updated successfully",
+                Data = farm
+            });
         }
 
-        // ✅ DELETE FARM (ONLY OWN FARM)
+        // ✅ DELETE FARM
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFarm(int id)
         {
@@ -111,12 +143,24 @@ namespace AgriManager.API.Controllers
                 .FirstOrDefaultAsync(f => f.FarmId == id && f.CustomerId == customerId);
 
             if (farm == null)
-                return NotFound("Farm not found");
+            {
+                return NotFound(new ApiResponseDto<object>
+                {
+                    Status = false,
+                    Message = "Farm not found",
+                    Data = null
+                });
+            }
 
             _context.Farms.Remove(farm);
             await _context.SaveChangesAsync();
 
-            return Ok("Farm deleted successfully");
+            return Ok(new ApiResponseDto<object>
+            {
+                Status = true,
+                Message = "Farm deleted successfully",
+                Data = null
+            });
         }
     }
 }
