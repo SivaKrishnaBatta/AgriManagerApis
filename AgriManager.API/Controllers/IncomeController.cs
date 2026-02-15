@@ -32,24 +32,12 @@ namespace AgriManager.API.Controllers
             {
                 int customerId = GetCustomerId();
 
-                if (dto.Quantity == null || dto.PricePerUnit == null)
-                {
-                    return BadRequest(new ApiResponseDto<object>
-                    {
-                        Status = false,
-                        Message = "Quantity and PricePerUnit are required",
-                        Data = null
-                    });
-                }
-
-                decimal totalAmount = dto.Quantity.Value * dto.PricePerUnit.Value;
-
                 var income = new Income
                 {
                     CropId = dto.CropId,
                     Quantity = dto.Quantity,
                     PricePerUnit = dto.PricePerUnit,
-                    TotalAmount = totalAmount,
+                    TotalAmount = dto.TotalAmount,  // TAKE FROM FRONTEND
                     SaleDate = DateOnly.FromDateTime(dto.SaleDate),
                     Notes = dto.Notes,
                     CustomerId = customerId,
@@ -77,6 +65,7 @@ namespace AgriManager.API.Controllers
                 });
             }
         }
+
 
         // ================= GET ALL =================
         [HttpGet]
