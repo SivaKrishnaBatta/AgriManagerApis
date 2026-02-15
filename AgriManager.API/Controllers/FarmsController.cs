@@ -24,7 +24,7 @@ namespace AgriManager.API.Controllers
             return int.Parse(User.FindFirst("CustomerId")!.Value);
         }
 
-        // ✅ CREATE FARM
+        // CREATE FARM
         [HttpPost]
         public async Task<IActionResult> CreateFarm(FarmCreateUpdateDto dto)
         {
@@ -52,7 +52,7 @@ namespace AgriManager.API.Controllers
             });
         }
 
-        // ✅ GET ALL FARMS
+        //  GET ALL FARMS
         [HttpGet]
         public async Task<IActionResult> GetAllFarms()
         {
