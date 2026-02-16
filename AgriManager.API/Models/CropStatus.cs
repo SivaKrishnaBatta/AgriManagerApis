@@ -17,8 +17,6 @@ public partial class CropStatus
 
     public bool IsActive { get; set; }
 
-    public int? CustomerId { get; set; }
-
     [Column(TypeName = "datetime")]
     public DateTime CreatedAt { get; set; }
 

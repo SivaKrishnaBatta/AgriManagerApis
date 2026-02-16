@@ -16,6 +16,7 @@
 
         public DateTime SaleDate { get; set; }
 
+
         public string? Notes { get; set; }
     }
 }

@@ -38,7 +38,7 @@ namespace AgriManager.API.Controllers
                     Quantity = dto.Quantity,
                     PricePerUnit = dto.PricePerUnit,
                     TotalAmount = dto.TotalAmount,  // TAKE FROM FRONTEND
-                    SaleDate = DateOnly.FromDateTime(dto.SaleDate),
+                    SaleDate = DateOnly.FromDateTime(dto.SaleDate.Date),
                     Notes = dto.Notes,
                     CustomerId = customerId,
                     CreatedBy = customerId,
@@ -192,7 +192,7 @@ namespace AgriManager.API.Controllers
                 income.Quantity = dto.Quantity;
                 income.PricePerUnit = dto.PricePerUnit;
                 income.TotalAmount = (dto.Quantity ?? 0) * (dto.PricePerUnit ?? 0);
-                income.SaleDate = DateOnly.FromDateTime(dto.SaleDate);
+                income.SaleDate = DateOnly.FromDateTime(dto.SaleDate.Date);
                 income.Notes = dto.Notes;
                 income.ModifiedAt = DateTime.Now;
                 income.ModifiedBy = customerId;
